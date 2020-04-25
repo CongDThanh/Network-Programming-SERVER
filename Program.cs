@@ -65,7 +65,6 @@ class Server
 
                     if (id.ToUpper() == "EXIT")
                         writer.WriteLine("bye");
-                        break; 
 
                     if (_data.ContainsKey(id))
                         writer.WriteLine("Number you've entered: '{0}'", _data[id]);
