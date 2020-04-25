@@ -34,7 +34,7 @@ class Server
         IPAddress address = IPAddress.Parse("127.0.0.1");
 
         listener = new TcpListener(address, PORT_NUMBER);
-        Console.WriteLine("đợi kết nối...");
+        Console.WriteLine("Waiting for connection...");
         listener.Start();
 
         for (int i = 0; i < MAX_CONNECTION; i++)
@@ -64,7 +64,7 @@ class Server
                     string id = reader.ReadLine();
 
                     if (id.ToUpper() == "EXIT")
-                        writer.WriteLine("bye");
+                        writer.WriteLine("Bye");
 
                     if (_data.ContainsKey(id))
                         writer.WriteLine("Number you've entered: '{0}'", _data[id]);
