@@ -1,15 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 class Server
 {
 
     const int MAX_CONNECTION = 10;
-    const int PORT_NUMBER = 9999;
+    const int PORT_NUMBER = 8888;
 
     static TcpListener listener;
 
@@ -39,11 +40,11 @@ class Server
 
         for (int i = 0; i < MAX_CONNECTION; i++)
         {
-            new Thread(DoWork).Start();
+            new Thread(Process).Start();
         }
     }
 
-    static void DoWork()
+    static void Process()
     {
         while (true)
         {
@@ -51,6 +52,10 @@ class Server
 
             Console.WriteLine("Connection received from: {0}",
                               soc.RemoteEndPoint);
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "\n" + "#Connect At: " + DateTime.Now);
+            File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
             try
             {   
                 var stream = new NetworkStream(soc);
