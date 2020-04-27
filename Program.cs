@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-class Server
+public class Server
 {
 
     const int MAX_CONNECTION = 10;
@@ -40,7 +40,24 @@ class Server
 
         for (int i = 0; i < MAX_CONNECTION; i++)
         {
-            new Thread(Process).Start();
+            Socket soc = listener.AcceptSocket();
+            StringBuilder sb = new StringBuilder();
+            StringBuilder sb1 = new StringBuilder();
+            string IPConnected = sb1.ToString();
+            if (IPConnected.Contains(soc.RemoteEndPoint.ToString()))
+            {
+                Console.WriteLine("429 Too Many Request");
+                sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "-" + "Disconnect At: " + DateTime.Now + "-"+"Reason : 429 Too Many Request");
+                File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
+                sb.Clear();
+            }
+            else
+            {
+                new Thread(Process).Start();
+                sb1.Append(soc.RemoteEndPoint);
+                File.AppendAllText("ConnectedIP.txt", sb1.ToString());
+            }
+            
         }
     }
 
@@ -54,7 +71,7 @@ class Server
                               soc.RemoteEndPoint);
 
             StringBuilder sb = new StringBuilder();
-            sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "\n" + "#Connect At: " + DateTime.Now);
+            sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "-" + "Connect At: " + DateTime.Now);
             File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
             try
             {   
