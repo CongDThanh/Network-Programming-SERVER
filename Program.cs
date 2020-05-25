@@ -9,10 +9,10 @@ using System.Threading;
 public class Server
 {
 
-    const int MAX_CONNECTION = 10;
     const int PORT_NUMBER = 8888;
 
     static TcpListener listener;
+    static List<EndPoint> ConnectedClients = new List<EndPoint>();
 
     static Dictionary<string, string> _data =
         new Dictionary<string, string>
@@ -32,66 +32,112 @@ public class Server
 
     public static void Main()
     {
+        int MAX_CONNECTION = Convert.ToInt32(args[0]);
         IPAddress address = IPAddress.Parse("127.0.0.1");
 
         listener = new TcpListener(address, PORT_NUMBER);
+        Console.WriteLine("IP:Port of Server : " + address + ":" + PORT_NUMBER);
         Console.WriteLine("Waiting for connection...");
         listener.Start();
 
-        for (int i = 0; i < MAX_CONNECTION; i++)
+        for (int i = 0; i <= MAX_CONNECTION; i++)
         {
-            Socket soc = listener.AcceptSocket();
-            StringBuilder sb = new StringBuilder();
-            StringBuilder sb1 = new StringBuilder();
-            string IPConnected = sb1.ToString();
-            if (IPConnected.Contains(soc.RemoteEndPoint.ToString()))
+            if (i<=MAX_CONNECTION)
             {
-                Console.WriteLine("429 Too Many Request");
-                sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "-" + "Disconnect At: " + DateTime.Now + "-"+"Reason : 429 Too Many Request");
-                File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
-                sb.Clear();
+               new Thread(Process).Start();
             }
             else
             {
-                new Thread(Process).Start();
-                sb1.Append(soc.RemoteEndPoint);
-                File.AppendAllText("ConnectedIP.txt", sb1.ToString());
+                new Thread(Process_Deny).Start();
             }
             
         }
     }
 
-    static void Process()
+    static void Process_Deny()
+    {
+        while (true)
+        {
+            Socket soc = listener.AcceptSocket();
+            var stream = new NetworkStream(soc);
+            var reader = new StreamReader(stream);
+            var writer = new StreamWriter(stream);
+            writer.AutoFlush = true;
+            Console.WriteLine("Connection received from(DENIED): {0}",
+                              soc.RemoteEndPoint);
+             writer.WriteLine("503 Service Unavalible, Close Connection !");
+        }
+    }
+     static void Process()
     {
         while (true)
         {
             Socket soc = listener.AcceptSocket();
 
+
             Console.WriteLine("Connection received from: {0}",
                               soc.RemoteEndPoint);
-
             StringBuilder sb = new StringBuilder();
-            sb.Append("#IP:Port of Client: " + soc.RemoteEndPoint + "-" + "Connect At: " + DateTime.Now);
-            File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
+            sb.Append("IP:Port of Client: " + soc.RemoteEndPoint + ";" + "Connect At: " + DateTime.Now);
+            foreach (EndPoint EP in ConnectedClients)
+            {
+                if (soc.RemoteEndPoint == EP)
+                {
+                    var stream = new NetworkStream(soc);
+                    var writer = new StreamWriter(stream);
+                    writer.AutoFlush = true;
+                    writer.WriteLine("429 Many Request !");
+                    sb.Append(" Disconect At : " + DateTime.Now + ";" + "Reason : 429 Many Request");
+                    File.AppendAllText("Access.log", sb.ToString());
+                    stream.Close();
+                    soc.Close();
+                }
+                else
+                {
+                    ConnectedClients.Add(soc.RemoteEndPoint);
+                }
+            }
             try
             {   
                 var stream = new NetworkStream(soc);
                 var reader = new StreamReader(stream);
                 var writer = new StreamWriter(stream);
                 writer.AutoFlush = true;
-
+               
 
                 while (true)
                 {
                     string id = reader.ReadLine();
 
                     if (id.ToUpper() == "EXIT")
-                        writer.WriteLine("Bye");
+                    {
+                        writer.WriteLine("BYE");
+                        sb.Append(";Disconnect At: " + DateTime.Now+";"+"Reason: Closed By Client\n");
+                        File.AppendAllText("E:\\KY 6\\LAP TRINH MANG\\Week\\Access.log", sb.ToString());
+                        sb.Clear();
+                        break; // disconnect
+                    }
+                        
 
                     if (_data.ContainsKey(id))
                         writer.WriteLine("Number you've entered: '{0}'", _data[id]);
+                    else if (id.Contains("dig"))
+                    {
+                        string[] idcut = id.Split(' ');
+                        var ipaddress = Dns.GetHostAddresses(idcut[1])[0];
+                        writer.WriteLine("IP of Domain is : " + ipaddress);
+                    }
+                    else if (id.Contains("curl"))
+                    {
+                        string[] idcut = id.Split(' ');
+                        WebClient Client = new WebClient();
+                        Client.DownloadFile(idcut[1],"myfile.txt");
+                        writer.WriteLine("Content of Website has been downloaded !");
+                    }
                     else
-                        writer.WriteLine("Number is not valid !");
+                    {
+                        writer.WriteLine("Wrong Syntax ! ");
+                    }
                 }
                 stream.Close();
             }
@@ -99,9 +145,9 @@ public class Server
             {
                 Console.WriteLine("Error: " + ex);
             }
-
             Console.WriteLine("Client disconnected: {0}",
                               soc.RemoteEndPoint);
+            ConnectedClients.Remove(soc.RemoteEndPoint);
             soc.Close();
         }
     }
